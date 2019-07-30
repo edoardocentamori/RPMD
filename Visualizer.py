@@ -5,7 +5,7 @@ import pickle
 
 
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
-pathcoord='1-5-0.001-3'+'.txt'
+pathcoord='2-5-0.001-4'+'.txt'
 path=location+pathcoord
 
 #path1 = '/Users/edoardo/Desktop/simulazione_prova/pickle_norm.txt'
@@ -19,7 +19,7 @@ a,b,c,d=Q_n.shape
 Q_n=Q_n.reshape(a,b*c,d)
 
 
-'''
+
 fig, ((ax11,ax22),(ax12,ax21)) = plt.subplots(2,2)
 x = np.linspace(0,len(Q_n)*dt,len(Q_n)-3)
 E_n=E_n[3:]
@@ -36,7 +36,6 @@ ax21.set_yscale('log')
 ax12.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 ax21.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 plt.show()
-'''
 
 
 

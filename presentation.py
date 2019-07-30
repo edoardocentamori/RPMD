@@ -2,10 +2,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pickle
 
-P = 1 # masses
+P = 2 # masses
 N = 5 # beads per mass
 
-steps = 100000
+steps = 20000
 dim = 2
 # time scales
 dt=0.001
@@ -20,11 +20,16 @@ vel_beads_scale = 0.2
 omega2=3.
 ext_omega2=0.6
 
-id=3
+id=4
 
 prepath='/Users/edoardo/Desktop/simulazione_prova/record/'
 ID = str(P)+'-'+str(N) + '-' + str(dt) +'-'+ str(id) +'.txt'
 path=prepath+ID
+
+'''
+Basically it's working kinda good, maybe it could be a good idea to create some automatic
+test to see when it fails to chek the presence of minor problems.
+'''
 
 
 def initialize(positions = None):
@@ -120,7 +125,7 @@ def verlet_algorithm(q_0,v_0,fix=None,pos=None):
 '''
 
 
-def constrained_r(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None):
+def constrained_r(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
     '''
     linear constrain can be combined simply adding forces, i still don't know if that's
     true in general
@@ -147,25 +152,47 @@ def constrained_r(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None):
         for (i,a),(j,b),l in lenf:
             B[i,a]=q[i,a]-q[j,b]+dt*(v[i,a]-v[j,b])-dt**2/2*(dV0[i,a]-dV0[j,b])
             C[i,a]=-dt**2*(q[i,a]-q[j,b])
-            #B[j,b]=B[i,a]
-            #C[j,b]=C[i,a]
         BC=(B*C).sum(-1)
         B2=(B**2).sum(-1)
         C2=(C**2).sum(-1)
         lamda_rp=(-BC+np.sqrt(BC**2-C2*(B2-l**2)))/C2
         lamda_rm=(-BC-np.sqrt(BC**2-C2*(B2-l**2)))/C2
-        #lamda_rx=np.min(lamda_rp,lamda_rm)
-        for (i,a),(j,b),_ in lenf: #maybe there are problem in here
+        for (i,a),(j,b),_ in lenf:
             if abs(lamda_rp[i,a])<abs(lamda_rm[i,a]):
                 lamda_rx[i,a]=lamda_rp[i,a]
             else:
                 lamda_rx[i,a]=lamda_rm[i,a]
-            #lamda_rx[i,a]=min(lamda_rp[i,a],lamda_rm[i,a]) #achtung negativi
-            lamda_r[i,a]=(q[i,a]-q[j,b])*lamda_rx[i,a]
-            lamda_r[j,b]=-(q[i,a]-q[j,b])*lamda_rx[i,a]
+            #I call the following lamda but actually they are G*lambda
+            lamda_r[i,a]+=(q[i,a]-q[j,b])*lamda_rx[i,a]
+            lamda_r[j,b]+=-(q[i,a]-q[j,b])*lamda_rx[i,a]
+    if lenfc:
+        #print('here')
+        B = np.zeros((P,dim)) 
+        C = np.zeros((P,dim))
+        lamda_rx=np.zeros((P,))
+        u = q.sum(0)/N
+        vu = v.sum(0)/N 
+        dV0u = dV0.sum(0)/N
+        for a,b,l in lenfc:
+            B[a]=u[a]-u[b]+dt*(vu[a]-vu[b])-dt**2/2*(dV0u[a]-dV0u[b])
+            C[a]=-dt**2*(u[a]-u[b])/N
+        BC=(B*C).sum(-1)
+        B2=(B**2).sum(-1)
+        C2=(C**2).sum(-1)
+        lamda_rp=(-BC+np.sqrt(BC**2-C2*(B2-l**2)))/C2
+        lamda_rm=(-BC-np.sqrt(BC**2-C2*(B2-l**2)))/C2
+        for a,b,_ in lenfc:
+            if abs(lamda_rp[a])<abs(lamda_rm[a]):
+                lamda_rx[a]=lamda_rp[a]
+            else:
+                lamda_rx[a]=lamda_rm[a]
+            #I call the following lamda but actually they are G*lambda
+            for i in range(N):
+                lamda_r[i,a]+=(u[a]-u[b])/N*lamda_rx[a]
+                lamda_r[i,b]+=-(u[a]-u[b])/N*lamda_rx[a]
     return lamda_r
 
-def constrained_v(q1,vp,dV1,fix=None,pos=None,fixc=None,posc=None,lenf=None):
+def constrained_v(q1,vp,dV1,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
     lamda_vp = np.zeros((N,P,dim))
     if fix:
         for i,j in fix:
@@ -180,18 +207,29 @@ def constrained_v(q1,vp,dV1,fix=None,pos=None,fixc=None,posc=None,lenf=None):
     if lenf:
         lamda_vx= np.zeros((N,P))
         for (i,a),(j,b),_ in lenf:
-            #print((q1[i,a]-q1[j,b])*(vp[i,a]-vp[j,b]))
             q1vp=((q1[i,a]-q1[j,b])*(vp[i,a]-vp[j,b])).sum(-1)
             q1dV1=((q1[i,a]-q1[j,b])*(dV1[i,a]-dV1[j,b])).sum(-1)
             q2=((q1[i,a]-q1[j,b])**2).sum(-1)
-            #print(type(q1vp),type(q1dV1),type(q2))
-            #print(q1vp,q1dV1,q2)
             lamda_vx[i,a]=1/dt*(q1vp-dt/2*q1dV1)/(q2)
-            lamda_vp[i,a]=lamda_vx[i,a]*(q1[i,a]-q1[j,b])
-            lamda_vp[j,b]=-lamda_vx[i,a]*(q1[i,a]-q1[j,b])
+            lamda_vp[i,a]+=lamda_vx[i,a]*(q1[i,a]-q1[j,b])
+            lamda_vp[j,b]+=-lamda_vx[i,a]*(q1[i,a]-q1[j,b])
+    if lenfc:
+        u1 = q1.sum(0)/N
+        vpu = vp.sum(0)/N 
+        dV1u = dV1.sum(0)/N
+        lamda_vx= np.zeros((P,))
+        #print(lenfc)
+        for a,b,_ in lenfc:
+            u1vpu=((u1[a]-u1[b])*(vpu[a]-vpu[b])).sum(-1)
+            u1dV1u=((u1[a]-u1[b])*(dV1u[a]-dV1u[b])).sum(-1)
+            u2=((u1[a]-u1[b])**2).sum(-1)
+            lamda_vx[a]=1/dt*(u1vpu-dt/2*u1dV1u)/(u2)
+            for i in range(N):
+                lamda_vp[i,a]+=lamda_vx[a]*(u1[a]-u1[b])
+                lamda_vp[i,b]+=-lamda_vx[a]*(u1[a]-u1[b])
     return lamda_vp
     
-def verlet_step(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None):
+def verlet_step(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
     """
     vm == v_n-1/2
     vp == v_n+1/2
@@ -200,19 +238,19 @@ def verlet_step(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None):
     Achtung: there are a few problem with n+-1/2 solved by adatting q, pay attention!
     """
     # evaluate lamda_r(n)
-    lamda_r = constrained_r(q,v,dV0,fix,pos,fixc,posc,lenf)
+    lamda_r = constrained_r(q,v,dV0,fix,pos,fixc,posc,lenf,lenfc)
     # evaluate v(n+1/2)
     vp = v-dV0*dt/2-dt/2*lamda_r
     # evaluate q(n+1)
     q1 = q+dt*vp
     dV1=dV(q1)
     # evaluate lamda_v(n+1)
-    lamda_vp = constrained_v(q1,vp,dV1,fix,pos,fixc,posc,lenf)
+    lamda_vp = constrained_v(q1,vp,dV1,fix,pos,fixc,posc,lenf,lenfc)
     # evaluate v(n+1)
     v1=vp-dt/2*dV1-dt/2*lamda_vp
     return q1,v1,dV1
     
-def verlet_algorithm(q_0,v_0,fix=None,pos=None,fixc=None,posc=None,lenf=None):
+def verlet_algorithm(q_0,v_0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
     Q_n, V_n= [], []
     q_n, v_n = q_0, v_0
     dV0=dV(q_n)
@@ -227,7 +265,7 @@ def verlet_algorithm(q_0,v_0,fix=None,pos=None,fixc=None,posc=None,lenf=None):
             posc = np.zeros((P,dim))
             for j in fixc:
                 posc[j]=q_0.swapaxes(0,1)[j].sum(0)
-        q_n, v_n, dV0 = verlet_step(q_n, v_n,dV0,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf)
+        q_n, v_n, dV0 = verlet_step(q_n, v_n,dV0,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc)
     return np.asarray(Q_n), np.asarray(V_n)
     
 
@@ -250,16 +288,23 @@ q_0,v_0 = initialize()
 #fix=[(0,0),(3,0)]
 #fixc=[0,2]
 
-lint=np.sqrt(((q_0[0,0]-q_0[1,0])**2).sum(-1))
-lenf=[((0,0),(1,0),lint)]
+#lint=np.sqrt(((q_0[0,0]-q_0[1,0])**2).sum(-1))
+#lenf=[((0,0),(1,0),lint)]
 fix=None
-fixc=None
-#lenf=None
+#fixc=None
+lenf=None
+#lenfc=None
 
-Q_n,V_n= verlet_algorithm(q_0,v_0,fix=fix,fixc=fixc,lenf=lenf)
+u_0=q_0.sum(0)
+lintc=np.sqrt(((u_0[0]-u_0[1])**2).sum(-1))/N
+
+lenfc=[(0,1,lintc)]
+fixc =[0]
+
+Q_n,V_n= verlet_algorithm(q_0,v_0,fix=fix,fixc=fixc,lenf=lenf,lenfc=lenfc)
 
 G_n=(Q_n.swapaxes(0,1)).swapaxes(1,2)
-l_n = np.sqrt(((G_n[0,0]-G_n[1,0])**2).sum(-1))
+#l_n = np.sqrt(((G_n[0,0]-G_n[1,0])**2).sum(-1))
 
 E_n = energy(Q_n,V_n)
 L_n = angular_momentum(Q_n,V_n)
@@ -271,9 +316,9 @@ out_file.close()
 fig, (ax1,ax2) = plt.subplots(2,1)
 x = np.linspace(0,steps*dt,steps-3)
 E_n=E_n[3:]
-#L_n=L_n[3:]
+L_n=L_n[3:]
 
-L_n=l_n[3:]-l_n.mean()
+#L_n=l_n[3:]-l_n.mean()
 ax1.scatter(x,E_n,c='yellow',s=0.1)
 ax2.scatter(x,L_n,c='red',s=0.1)
 ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
