@@ -3,14 +3,15 @@ import matplotlib.animation as animation
 import numpy as np
 import pickle
 
+# Data extraction
 
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
-pathcoord='2-5-0.001-4'+'.txt'
+pathcoord='1-6-0.0001-6'+'.txt'
 path=location+pathcoord
 
 #path1 = '/Users/edoardo/Desktop/simulazione_prova/pickle_norm.txt'
 
-time_multiplier=10
+time_multiplier=200
 
 in_file=open(path, 'rb')
 A=pickle.load(in_file)
@@ -18,7 +19,7 @@ Q_n, V_n, E_n, L_n ,dt= A[0], A[1], A[2], A[3], A[4]
 a,b,c,d=Q_n.shape
 Q_n=Q_n.reshape(a,b*c,d)
 
-
+# Energy and Angular Momentum plots
 
 fig, ((ax11,ax22),(ax12,ax21)) = plt.subplots(2,2)
 x = np.linspace(0,len(Q_n)*dt,len(Q_n)-3)
@@ -38,6 +39,7 @@ ax21.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 plt.show()
 
 
+# time scaling : simply ignore some data to show things faster
 
 S_n=np.zeros((a//time_multiplier,b*c,d))
 for i in range(len(Q_n)//time_multiplier):
@@ -81,8 +83,7 @@ class AnimatedScatter(object):
         return self.scat,
 
     def data_stream(self):
-        """Generate a random walk (brownian motion). Data is scaled to produce
-        a soft "flickering" effect."""
+        """ data stream generation """
         x = Q_n.T[0]
         y = Q_n.T[1]
         s = np.ones(self.numpoints).T*0.5
