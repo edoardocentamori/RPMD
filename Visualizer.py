@@ -6,15 +6,16 @@ import pickle
 # Data extraction
 
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
-pathcoord='1-6-0.0001-6'+'.txt'
+pathcoord='3-10-0.005-13'+'.txt'
 path=location+pathcoord
 
 #path1 = '/Users/edoardo/Desktop/simulazione_prova/pickle_norm.txt'
 
-time_multiplier=200
+time_multiplier=10
 
 in_file=open(path, 'rb')
 A=pickle.load(in_file)
+in_file.close() #aggiunte recentemente, sembrava non necessario
 Q_n, V_n, E_n, L_n ,dt= A[0], A[1], A[2], A[3], A[4]
 a,b,c,d=Q_n.shape
 Q_n=Q_n.reshape(a,b*c,d)
@@ -77,7 +78,7 @@ class AnimatedScatter(object):
         x, y, s, c = next(self.stream).T
         self.scat = self.ax.scatter(x, y, c=c, s=s, vmin=0, vmax=1,
                                     cmap="jet", edgecolor="k")
-        self.ax.axis([-20, 20, -20, 20])
+        self.ax.axis([-100, 100, -100, 100])
         # For FuncAnimation's sake, we need to return the artist we'll be using
         # Note that it expects a sequence of artists, thus the trailing comma.
         return self.scat,

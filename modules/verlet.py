@@ -2,7 +2,12 @@ import numpy as np
 from setting import *
 from modules.rattle import constrained_r, constrained_v
 from modules.normal import get_norm , prop_norm, get_stand
-from modules.thermostat import thermal_step
+from modules.thermostat import thermal_step, debug_thermal_step
+
+
+
+def zero_init():
+    return np.zeros((N,P,dim)), np.zeros((N,P,dim))
 
 def initialize(positions = None):
     """
@@ -35,7 +40,7 @@ def dVext(q):
     """
     return ext_omega2*q
     
-def verlet_step(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
+def verlet_step(q,v,dV0,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
     """
     vm == v_n-1/2
     vp == v_n+1/2
@@ -56,17 +61,17 @@ def verlet_step(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=No
     v1=vp-dt/2*dV1-dt/2*lamda_vp
     return q1,v1,dV1
     
-def verlet_step1(q,v,dV0ext,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None, therm= None):
+def verlet_step1(q,v,dV0ext,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None, therm= None):
     """
     new implementation of verlet_step using normal modes propagation.
     problem need to be fixed, try using python debugger
     """
     # first thermalization
     if therm:
-        v = thermal_step(v)
+        v = thermal_step(v,beta)
     # evaluate lamda_r(n)
     lamda_r = constrained_r(q,v,dV0ext,fix,pos,fixc,posc,lenf,lenfc)
-    # evaluate v(n+1/2)
+    # evaluate v(n+1/2)    
     vp = v-dV0ext*dt/2-dt/2*lamda_r
     # normal mode change variable
     u, vpu = get_norm(q,vp)
@@ -74,21 +79,35 @@ def verlet_step1(q,v,dV0ext,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenf
     u1, vpu1 = prop_norm(u,vpu)
     # back to standard coordinate
     q1, vp = get_stand(u1,vpu1)
-    dV1ext=dVext(q1)
+    dV1ext=dVext(q1)    
     # evaluate lamda_v(n+1)
     lamda_vp = constrained_v(q1,vp,dV1ext,fix,pos,fixc,posc,lenf,lenfc)
     # evaluate v(n+1)
     v1=vp-dt/2*dV1ext-dt/2*lamda_vp
     # second thermalization
     if therm:
-        v1 = thermal_step(v1)
+        v1 = thermal_step(v1,beta)
     return q1,v1,dV1ext
     
-def verlet_algorithm(q_0,v_0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None,norm=0,therm=None):
+def debug_verl_step(q,v,dV0ext,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None, therm= None):
+    # In debug mode q and v are actually the normal modes
+    #just to make make it work, useless
+    dV1ext=dV0ext
+    # first thermalization
+    vp = debug_thermal_step(v)
+    # normal mode propagation
+    q1, v1 = prop_norm(q,vp)
+    # second thermalization
+    v1 = debug_thermal_step(v1)
+    return q1,v1,dV1ext
+    
+def verlet_algorithm(q_0,v_0,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None,norm=0,therm=None,debug=False):
     Q_n, V_n= [], []
     q_n, v_n = q_0, v_0
     dV0=dV(q_n)
     dV0ext=dVext(q_n)
+    if debug:
+        u_n, vu_n = get_norm(q_n,v_n)
     for _ in range(steps):
         Q_n.append(q_n)
         V_n.append(v_n)
@@ -101,8 +120,12 @@ def verlet_algorithm(q_0,v_0,fix=None,pos=None,fixc=None,posc=None,lenf=None,len
             posc = np.zeros((P,dim))
             for j in fixc:
                 posc[j]=q_0.swapaxes(0,1)[j].sum(0)
+        if debug: 
+            u_n, vu_n, dV0 = debug_verl_step(u_n, vu_n,dV0,beta,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc)
+            q_n,v_n = get_stand(u_n,vu_n)
+            continue
         if norm==0:
-            q_n, v_n, dV0 = verlet_step(q_n, v_n,dV0,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc)
+            q_n, v_n, dV0 = verlet_step(q_n, v_n,dV0,beta,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc)
         elif norm:
-            q_n, v_n, dV0ext = verlet_step1(q_n, v_n,dV0ext,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc,therm=therm)
+            q_n, v_n, dV0ext = verlet_step1(q_n, v_n,dV0ext,beta,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc,therm=therm)
     return np.asarray(Q_n), np.asarray(V_n)

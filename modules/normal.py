@@ -4,6 +4,9 @@ from setting import *
 #j-k inverted w.r.t the definition in the paper (C = C_kj)
 #took 2.3 s for N=10000
 
+
+#Normal modes checked, pretty sure they work kinda good
+
 assert N%2==0, 'N must be even'
 C = np.zeros((N,N))
 j=np.arange(N)
@@ -19,7 +22,22 @@ for k in range(N):
 
 w=2*np.sqrt(omega2)*np.sin(np.pi/N*np.arange(N))
 
+'''
 
+It's probably faster with a fft transform, that is:
+
+from scipy.fftpack import fft,ifft
+
+u = ifft(q, axis=0)
+
+the one with cos
+u[i]=(u[i]+u[N-i])*np.sqrt(N/2) #or something similar
+the one with sin 
+similar stuff
+
+evetnually implement this thing
+
+'''
 
 numerical_sin_w = np.zeros(N)
 # solving 0/0 problem
@@ -27,7 +45,7 @@ for i in range(N):
     if w[i] != 0:
         numerical_sin_w[i] = 1/w[i]*np.sin(w[i]*dt)
     else :
-        numerical_sin_w[i] = dt
+        numerical_sin_w[i] = dt - 1/6*w[i]**2*dt**3 #added recently 3rd order
         
 def get_norm(q,v):
     return np.dot(C,q.swapaxes(0,1)), np.dot(C,v.swapaxes(0,1))

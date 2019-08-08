@@ -1,0 +1,81 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage[separate-uncertainty=true]{siunitx}
+\usepackage{circuitikz}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\newcommand{\rem}[1]{[\emph{#1}]}
+\newcommand{\exn}{\phantom{xxx}}
+\renewcommand{\thesubsection}{\thesection.\alph{subsection}}  %% use 1.a numbering
+\usepackage{verbatim}
+\usepackage[title]{appendix}
+\usepackage{mathtools}
+
+
+\setlength\parindent{0pt}
+\author{Edoardo Centamori}
+\title{Summer Student Project}
+
+\begin{document}
+\date{\today}
+\maketitle
+        
+\section{Theoretical introduction}
+
+\subsection{PIMD}
+It's well known that path integral reformulation of quantum mechanics yield to 
+\[K(x',t,x,0)=\int [\mathcal{D}x(\tau)]e^{-S[x(\tau)]/\hbar} \]
+where K is the propagator, $S[x(\tau)]$ the action of the path $x(\tau)$ and $[\mathcal{D}x(\tau)]$ indicates the set of path starting from $x$ at time $0$ and getting to $x'$ at time $t$.
+%ACTUALLY NOT SURE ABOUT X AND X', WHICH IS WHICH?
+
+Then considering a simple minkowskian rotation, we can obtain a partition function
+
+\[\mathcal{Z}(\beta)=\oint [\mathcal{D}x(\tau)]e^{iS[x(\tau)]/\hbar} \]
+
+where now integration is intended over all closed path of imaginary time $\beta\hbar$.
+
+Since we would like to compute this quantities numerically we need to discretize such equation, in particular is straightforward to show that
+\[ \mathcal{Z}_N(\beta):= \left( \frac{mN}{2\pi \beta \hbar^2}  \right)^{N/2} \int dx_1\cdots dx_N \exp \left\{ -\sum_{i=1}^{N}\frac{mN}{2\beta\hbar^2}(x_{i+1}-x_i)^2+\frac{\beta}{N}V(x_i)  \right\} \xrightarrow[N\rightarrow \infty]{} \mathcal{Z}(\beta)\]
+
+where the indexes are intended to be cyclic.
+
+What is particularly surprising is that 
+
+\[ \left( \frac{mN}{2\pi \beta \hbar^2}  \right)^{N/2} = \int \frac{dp_1\cdots dp_N}{\hbar^N} \exp\left\{ -\beta\sum_{i=1}^{N}\frac{ p_i^2}{2m} \right\} \]
+
+So that 
+\[\mathcal{Z}_N(\beta)= \int \frac{dx_1\cdots dx_Ndp_1\cdots dp_N}{\hbar^N} e^{-\beta_N H_n}   \]
+\[ H_n(x_1,\dots,x_N,p_1,\dots,p_N)= \sum_{i=1}^{N}\frac{ p_i^2}{2m} + \frac{m\omega_N^2}{2}(x_{i+1}-x_i)^2+V(x_i)\]
+with $\omega_N=\frac{N}{\beta\hbar}$ and $\beta_n=\frac{\beta}{N}$.
+but this is actually the partition function of a classical system, more specifically it's the partition function of a set of $N$ beads cyclically connected by harmonic springs with frequency $\omega_N$ and immersed in a potential $V$, the system is canonically distributed with inverse temperature $\beta_N$.
+\vspace{15pt}
+
+This idea provide us a method for simulating quantum system using classical algorithm, in particular $\mathcal{Z}_N(\beta)$ could be evaluated using either a Monte Carlo sampling or a molecular dynamics simulation, we focus on the latter option.
+Certain problem arise from this task, the first one is ergodicity, in order to achieve accurate averages along the canonical distribution we need the system to be actually canonically distributed, this require the presence of a thermostat, the most used are certainly the Nosé-Hoover and the Langevin thermostats, we'll describe the second one.
+%CITATION
+
+\subsection{SDE and Langevin thermostating}
+Langevin equations
+\[\frac{dq}{dt}=\frac{p}{m} \]
+\[\frac{dp}{dt}=-\frac{dV}{dq}-\gamma p+\sqrt{\frac{2m\gamma}{\beta}} \xi \]
+Is a set of stochastic differential equation, $\gamma$ is a viscous coefficient and $\xi$ a random variable with $\langle\xi(t)\rangle=0$ $\langle\xi(t)\xi(s)\rangle = \delta(t-s)$ .
+By means of Ito calculus it's fairly easy to transform such equation in an equation concerning the density distribution of the random variable $p$, such equation is known as Fokker-Plank equation
+\[ \frac{\partial\rho}{\partial t} = -p\frac{\partial\rho}{\partial q}+\frac{\partial}{\partial p}[(\frac{dV}{dq}+\gamma p)\rho]+\frac{m\gamma}{\beta}\frac{\partial^2\rho}{\partial p^2} \]
+
+where $\rho= \rho(q,p,t|q_0,p_0,0)$ is a conditional distribution for the stochastic variable $(q,p)$ in the phase space.
+By direct substitution it's easy to check that
+\[\rho = C \exp	\left\{ -\beta(\frac{p^2}{2m}+V(q)) \right\}  \]
+with C fixed by the normalization condition is the only stationary solution.
+We can workout analytically a solution for the SDE even in the time dependent case, we simply need a little bit of Ito calculus. 
+
+ADD STUFF: show that the analytic solution converge to the static one, that gamma is relevant for the time scale and say that the solution it's the canonical one.
+\subsection{Rattle algorithm}
+
+\section{Computational part}
+
+\end{document}          
