@@ -28,7 +28,7 @@ q_0,v_0 = zero_init()
 #u_0=q_0.sum(0)
 #lintc=np.sqrt(((u_0[0]-u_0[1])**2).sum(-1))/N
 #lenfc=[(0,1,lintc)]
-#fixc =[0]
+fixc =[0]
 fix=None
 fixc=None
 lenf=None
@@ -91,6 +91,8 @@ ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 ax2.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 plt.show()
 
+
+
 # plotting energy estimators
 
 fig1, ax3 = plt.subplots()
@@ -125,16 +127,17 @@ ax4.legend()
 plt.show()
 
 
+fE4 = E4[20000:]
+fe4 = time_avarage(fE4)
+print(fe4[-1]) 
+
 '''
+u = (Q_n.swapaxes(0,2)[0].sum(0)/N).swapaxes(0,1)[0]
+x=np.linspace(0,steps*dt,steps)
+fig3, ax5= plt.subplots()
 
-#plotting debug estimators
 
-K = kinetic(V_n)
-k = time_avarage(K)
-x=np.linspace(0,len(k)*dt,len(k))
-fig3, ax5 = plt.subplots()
-ax5.scatter(x,k,c='red',s=0.1,label='kinetic')
-ax5.legend()
+ax5.scatter(x,u,c='blue',s=0.1)
+ax5.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 plt.show()
-
 '''

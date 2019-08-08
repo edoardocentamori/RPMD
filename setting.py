@@ -11,7 +11,7 @@ eV2cm       = 8065.6        # eV -> cm^-1
 
 
 P = 1 # masses
-N = 40 # beads per mass
+N = 10 # beads per mass
 
 steps = 100000
 dim = 1

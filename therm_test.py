@@ -8,7 +8,7 @@ import pickle
 from scipy.optimize import curve_fit
 
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
-pathcoord='1-10-0.005-15'+'.txt'
+pathcoord='1-10-0.005-16'+'.txt'
 path=location+pathcoord
 
 in_file=open(path, 'rb')

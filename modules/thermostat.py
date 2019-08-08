@@ -17,21 +17,18 @@ def thermal_step(v,beta):
     It might have some problem for P>1 must fix
     '''
     vu = v_norm(v)
-    #print(vu[5])
-    #print(c1[5])
     vu = (c1*vu.swapaxes(0,-1)).swapaxes(0,-1)
-    #print(vu[5])
-    #print('----')
-    # to remove the beta/N just sobstitute N-> 1 in the sqrt
-    # removed for the moment
-    #print(np.sqrt(N/beta)*c2[5])
     ran = normal(size=(dim,P,N))
-    #print(ran.swapaxes(0,-1)[5,0])
     delta = (np.sqrt(N/beta)*c2*ran).swapaxes(0,-1)
-    #print(delta[5,0])
     vu+= delta
-    #print(vu[5])
-    #print('-----')
+    return v_stand(vu) 
+    
+def thermal_step2(v,beta):
+    vu = v_norm(v)
+    vu = (c1*vu.swapaxes(0,-1)).swapaxes(0,-1)
+    vu+= (np.sqrt(N/beta)*c2*normal(size=(dim,P,N))).swapaxes(0,-1)
+    vu = (c1*vu.swapaxes(0,-1)).swapaxes(0,-1)
+    vu+= (np.sqrt(N/beta)*c2*normal(size=(dim,P,N))).swapaxes(0,-1)
     return v_stand(vu) 
     
 def debug_thermal_step(vu,beta):
