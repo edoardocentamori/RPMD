@@ -25,6 +25,7 @@ def initialize(positions = None):
     q_n = (lattice + noise).swapaxes(0,1)+pos
     return q_n, v_n
     
+
 def dV(q):
     """
     If you want the free case just set ext_omega2 == 0.
@@ -32,6 +33,12 @@ def dV(q):
     dv = np.zeros((N,P,dim))
     for i in range(N):
         dv[i] = omega2*(2*q[i]-q[(i-1)%N]-q[(i+1)%N])+ext_omega2*q[i]
+    return dv
+    
+def dVint(q):
+    dv = np.zeros((N,P,dim))
+    for i in range(N):
+        dv[i] = omega2*(2*q[i]-q[(i-1)%N]-q[(i+1)%N])
     return dv
     
 def dVext(q):
@@ -61,30 +68,36 @@ def verlet_step(q,v,dV0,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,len
     v1=vp-dt/2*dV1-dt/2*lamda_vp
     return q1,v1,dV1
     
-def verlet_step2(q,v,dV0ext,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None, therm= None):
+def verlet_step2(q,v,dV0int,dV0ext,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None, therm= None):
     """
     new implementation of verlet_step using normal modes propagation.
     problem need to be fixed, try using python debugger
+    I think that you should use dV0 and not dV0ext in the determination 
+    of lamda_r
+    ADDED dV0int in arguments
     """
-    # first thermalization
+    # single thermalization in rattle
     if therm:
-        v = thermal_step2(v,beta)
-    # evaluate lamda_r(n)
-    lamda_r = constrained_r(q,v,dV0ext,fix,pos,fixc,posc,lenf,lenfc)
+        vt = thermal_step2(v,beta)
+    # simulate thermal action as evolution through an effective potential    
+    #dV_eff = -2*(vt-v)/dt
+    # evaluate lamda_r(n) assuming the effective potential acted
+    # modified with v-> vt in lambda_r
+    lamda_r = constrained_r(q,vt,dV0ext+dV0int,fix,pos,fixc,posc,lenf,lenfc)
     # evaluate v(n+1/2)    
-    vp = v-dV0ext*dt/2-dt/2*lamda_r
+    vp = vt-dV0ext*dt/2-dt/2*lamda_r
     # normal mode change variable
     u, vpu = get_norm(q,vp)
     # normal mode propagation
     u1, vpu1 = prop_norm(u,vpu)
     # back to standard coordinate
     q1, vp = get_stand(u1,vpu1)
-    dV1ext=dVext(q1)    
+    dV1ext , dV1int = dVext(q1) , dVint(q1)
     # evaluate lamda_v(n+1)
-    lamda_vp = constrained_v(q1,vp,dV1ext,fix,pos,fixc,posc,lenf,lenfc)
+    lamda_vp = constrained_v(q1,vp,dV1ext+dV1int,fix,pos,fixc,posc,lenf,lenfc)
     # evaluate v(n+1)
     v1=vp-dt/2*dV1ext-dt/2*lamda_vp
-    return q1,v1,dV1ext
+    return q1,v1,dV1int,dV1ext
     
 def verlet_step1(q,v,dV0ext,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None, therm= None):
     """
@@ -132,6 +145,7 @@ def verlet_algorithm(q_0,v_0,beta,fix=None,pos=None,fixc=None,posc=None,lenf=Non
     q_n, v_n = q_0, v_0
     dV0=dV(q_n) #problem in dimension different than 2 maybe fix later
     dV0ext=dVext(q_n)
+    dV0int=dVint(q_n)
     if debug:
         u_n, vu_n = get_norm(q_n,v_n)
     for _ in range(steps):
@@ -153,6 +167,6 @@ def verlet_algorithm(q_0,v_0,beta,fix=None,pos=None,fixc=None,posc=None,lenf=Non
         if norm==0:
             q_n, v_n, dV0 = verlet_step(q_n, v_n,dV0,beta,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc)
         elif norm:
-            q_n, v_n, dV0ext = verlet_step2(q_n, v_n,dV0ext,beta,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc,therm=therm)
-        #added verletstep2 to test it 
+            #added dVint e verlet step 2
+            q_n, v_n, dV0int,dV0ext = verlet_step2(q_n, v_n,dV0int,dV0ext,beta,fix=fix,pos=pos,fixc=fixc,posc=posc,lenf=lenf,lenfc=lenfc,therm=therm)
     return np.asarray(Q_n), np.asarray(V_n)

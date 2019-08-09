@@ -102,7 +102,7 @@ x=np.zeros(len(bin_edges)-1)
 
 for i in range(len(bin_edges)-1):
     x[i]=(bin_edges[i]+bin_edges[i+1])/2
-print(x)
+
 
 y= statistic/len(E1)
 #y=y[1:]
