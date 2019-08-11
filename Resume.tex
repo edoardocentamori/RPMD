@@ -4,10 +4,8 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
-\usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage[separate-uncertainty=true]{siunitx}
-\usepackage{circuitikz}
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
 \newcommand{\rem}[1]{[\emph{#1}]}
 \newcommand{\exn}{\phantom{xxx}}
@@ -15,15 +13,44 @@
 \usepackage{verbatim}
 \usepackage[title]{appendix}
 \usepackage{mathtools}
+\usepackage{bm}
+\usepackage[super]{nth}
+\usepackage{bbold}
 
+\usepackage{epsfig,scrpage2,graphicx}
+
+\setcounter{secnumdepth}{3}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0ex plus0.5ex minus0ex}
+\pagestyle{scrheadings}
+\bibliographystyle{unsrt}   
+
+\renewcommand{\headfont}{\normalfont}
+
+\cfoot{\pagemark}
 
 \setlength\parindent{0pt}
-\author{Edoardo Centamori}
-\title{Summer Student Project}
+\author{
+	Edoardo Centamori*\\
+	\newline
+	Scuola Normale Superiore\\
+	\newline
+	Università di Pisa
+}
+\title{
+	\hspace{15pt}\includegraphics[scale=0.28]{DESYlogo.pdf}
+	\hspace{20pt}\includegraphics[scale=0.15]{SNS.jpg}
+	\hspace{50pt}\includegraphics[scale=0.15]{uni-pisa.jpg}
+	\newline
+	\huge Summer Student Project}
 
+%ADD SUPERVISORS
 \begin{document}
+
 \date{\today}
 \maketitle
+\section{Abstract}
         
 \section{Theoretical introduction}
 
@@ -73,9 +100,120 @@ By direct substitution it's easy to check that
 with C fixed by the normalization condition is the only stationary solution.
 We can workout analytically a solution for the SDE even in the time dependent case, we simply need a little bit of Ito calculus. 
 
-ADD STUFF: show that the analytic solution converge to the static one, that gamma is relevant for the time scale and say that the solution it's the canonical one.
+Precisely for the case in which $V$ is an harmonic potential then the Langevin equation actually reduce to a simple Ornstein-Uhlenbeck process, for which the general SDE is:
+\[dx = -kxdt+\sqrt{D} dW(t) \] 
+Where $dW(t)$ is the differential of the Wigner process.
+Considering the stochastic variable $y=xe^{kt}$ and using Ito formula yield a very simple SDE 
+\[dy = \sqrt{D} E^{kt} dW(t) \] 
+that can be easily integrated so that
+\[x(t) = x(0)e^{-kt}+\sqrt{D} \int_0^t e^{-k(t-t')}dW(t') \]
+which, if $x(0)$ is either gaussian or nonrandom is clearly a gaussian process, thus completely specified by mean and variance (which can be evaluated easily using Ito's formulas for averages an correlations):
+\[\langle x(t)\rangle =  \langle x(0)\rangle e^{-kt} \]
+\[ \text{Var} \{x(t) \}= \{\text{Var}\{x(0)\}  -\frac{D}{2k} \}e^{-2kt} +\frac{D}{2k} \]
+The exponential decaying behavior shows that not only the stationary solution of this process is the canonical distribution but also that any process, regardless of it's initial condition approaches the stationary solution with a time scale dictated by the viscous coefficient. In future sections we'll search for optimal $\gamma$ coefficient in order to find efficient integrators of the motion.
+The relevant concept for the moment is that such equation of motion effectively act as a thermostat imposing canonical distribution to the paths. 
+
 \subsection{Rattle algorithm}
 
+Sometimes in these simulations is important to impose certain constrains, for example if I'm simulating the scattering of a set of particles I might want to ignore the energy associated to the motion of the center of mass of the system and thus I might want to remove such degree of freedom from my simulation. 
+
+For classical system this is done by mean of the \emph{Rattle algorithm}.
+Basically you would like to evaluate the generalized forces coming from the constrain, and for time independent constrain of the form :
+\[g_i(\vec{q}) = 0  \text{ for } i=1,\dots,m \]
+such forces must be perpendicular to the surface defined by the constrain itself (because of D'Alembert principle). Which in the end yield to :
+
+\[
+\begin{cases} 
+	\frac{d\vec{q}}{dt} = \vec{v} \\ 
+	\hat{M} \frac{d\vec{v}}{dt} = - \vec{\nabla}_{q}V(\vec{q})- \sum_i^m \lambda_i  \vec{\nabla}_{q}g_i(\vec{q})\\ 
+	g_i(\vec{q})=0
+\end{cases}
+\]
+Where the $\lambda_i$ can be thought also as Lagrange multipliers, and can be found explicitly by imposing the constrain (third equation).
+Rattle algorithm simply reimpose such constrains at each steps as will be shown more in detail in subsequent sections.
 \section{Computational part}
+\subsection{Classical Stormer-Verlet integrator}
+I started implementing a classical integrator to simulate the motion of necklaces immersed in an harmonic potential (basically PIMD without thermalization).
+The integrator chosen is the Stormer-Verlet algorithm, which is a second order integrator (meaning that at each step I commit and error that goes as $o(dt^3)$ with $dt$ time step in the discretization). Specifically the implemented algorithm at each steps act as :
+\begin{enumerate}
+	\item \[p \leftarrow p - \frac{dV}{d\vec{x}}\frac{dt}{2}\]
+	\item \[ q \leftarrow q + \frac{p}{m}\frac{dt}{2}\]
+	\item \[ p \leftarrow p - \frac{dV}{d\vec{x}}\frac{dt}{2}\]
+\end{enumerate}
+In order to check the effective functionality of such integrator I checked for conservation of classical energy and angular momentum of the system (considered completely classical at the moment) which are reported in Fig \ref{fig: e_m}.
+\begin{figure}[h]
+	\begin{center}
+		\includegraphics[width=0.5\linewidth]{imm_rep/classical/e_m.png}
+	\end{center}
+	\caption{Energy and angular momentum conservation for the classical Verlet-Storm algorithm.}
+	\label{fig: e_m}
+\end{figure}
+As can be seen explicitly, energy is conserved up to one part in a million while angular momentum is conserved up to floating point precision for this specific case. In general such fluctuation on energy are due to the finite time step in the integration and can be reduced reducing the time step as the general fluctuation goes as
+\[ \sqrt{(\Delta E^2)} = o(dt^2)  \]
+(More precisely there is a theoretical bound that goes as $o(dt^2)$ ).
+
+What is not obvious in general (and in general not true for all the commonly used integrators) is the conservation of the mean value of energy, which is true for this specific algorithm for $dt$ sufficiently small (while to big values of $dt$ can bring to systematic drift which have in general an exponentially divergent behavior as shown in Fig \ref{fig: exp_en} (notice how in a few dozen of steps the energy increases by over eight order of magnitudes). Such conservation is not obvious at all because in general small error at each steps accumulate so that trajectories diverges exponentially from the exact ones, nevertheless such exponentially wrong trajectory still has the correct energy for this particular integrator.
+
+
+\begin{figure}[h]
+	\begin{center}
+		\includegraphics[width=0.5\linewidth]{imm_rep/classical/exp_en.png}
+	\end{center}
+	\caption{Divegence of energy for too big values of $dt$.}
+	\label{fig: exp_en}
+\end{figure}
+
+\vspace{15pt}
+
+To have a better visualization of what is happening I have also created an algorithm to visualize dynamically the motion of the classical system (for clear reasons the visualization is only implemented for 2-dimensional system and could be easily extended to 3-dimensional ones while the computing algorithm is fully generalized to any number of dimension). Some screenshots of the video generated by this algorithms are shown in [ADD REFERENCE].
+[ADD AN IMAGE OF THE CLASSICAL ONE] 
+
+
+\subsection{Classical Rattle implementation}
+As we said previously Rattle algorithm at each step assure the preservation of constrain, and as can be seen is a direct generalization of the Stormer-Verlet algorithm
+\[
+\begin{cases}
+\bm{q}^{n+1} =  \bm{q}^n + dt\bm{v}^{n+\frac{1}{2}}\\
+\bm{M}\bm{v}^{n+\frac{1}{2}} = \bm{M}\bm{v}^n-\frac{dt}{2}\bm{\nabla}_{\bm q}V(\bm{q}^n)-\frac{dt}{2} \bm{G}(\bm{q}^n)^T\bm{\lambda}_r^n\\
+\bm{g}(\bm{q}^{n+1}) = \bm{0}\\
+\bm{M}\bm{v}^{n+1} = \bm{M}\bm{v}^{n+\frac{1}{2}}-\frac{dt}{2}\bm{\nabla}_{\bm q}V(\bm{q}^n)-\frac{dt}{2} \bm{G}(\bm{q}^{n+1})^T\bm{\lambda}_v^{n+1}\\
+\bm{G}(\bm{q}^{n+1})\bm{v}^{n+1} = \bm{0}
+\end{cases}
+\]
+where $\bm{G}^T(\bm{q})=\bm{\nabla}_{\bm q}\bm{g}(\bm{q})$. The two constrains are the requirement of $\bm{q}$ to point on the constrained surface and of $\bm{v}$ to lie on it.
+In practice the algorithm ar each step act as:
+\begin{enumerate}
+	\item Evaluate $\bm{\lambda}_r$ by solving :
+	\[ \bm{g}(\bm{q} + dt\bm{v}-\frac{dt^2}{2}\bm{M}^{-1}(\bm{\nabla}_{\bm q}V(\bm{q})-\bm{G}(\bm{q})^T\bm{\lambda}_r)) = \bm{0} \]
+	\item 
+	\[
+	\bm{v} \leftarrow \bm{v}-\frac{dt}{2}\bm{M}^{-1}\bm{\nabla}_{\bm q}V(\bm{q})-\frac{dt}{2} \bm{M}^{-1}\bm{G}(\bm{q})^T\bm{\lambda}_r
+	\]
+	\item
+	\[ \bm{q} \leftarrow  \bm{q} + dt\bm{v} \]
+	\item Evaluate $\bm{\lambda}_v$ by solving :
+	\[
+	\bm{G}(\bm{q})(\bm{v}-\frac{dt}{2}\bm{M}^{-1}\bm{\nabla}_{\bm q}V(\bm{q})-\frac{dt}{2}\bm{M}^{-1} \bm{G}(\bm{q})^T\bm{\lambda}_v) = \bm{0}
+	\]
+	\item
+	\[
+	\bm{v} \leftarrow \bm{v}-\frac{dt}{2}\bm{M}^{-1}\bm{\nabla}_{\bm q}V(\bm{q})-\frac{dt}{2} \bm{M}^{-1}\bm{G}(\bm{q})^T\bm{\lambda}_v
+	\]
+\end{enumerate}
+Solving the implicit equations to evaluate $\bm{\lambda}_r$ in the most general case will require the utilization of Newton method at each step which would probably become the most expensive part of the algorithm, fortunately for linear or quadratic constrains (and technically also cubic and quartic, but I haven't implement them explicitly) such equation can be solved analytically thus removing this burden (notice that since $\nth{5}$ grade or more equations cannot be solved explicitly such idea cannot be further generalized).
+It's important to say that Rattle is still a second order integrator
+
+As archetype of the general linear and quadratic constrain I'll show explicitly how to evaluate $\bm{\lambda}_r$ in order to constrain a centroid or the distance between two centroids.
+\subsubsection{Fixed centroid}
+Let $\bm{q}_{a,i}$ indicate the position of the i-th replica of the a-th necklace, then the requirement of the a-th centroid to be fixed is given by
+\[\bm{g}_1 (\bm{q})= \sum_i \bm{q}_{a,i} = 	\bm0 \]
+si that
+\[(\bm{G}(\bm{q}))_{b,i,c,j} = \delta_{b,a}\delta_{c,a} \delta_{i,j}  \mathbb{1}  \]
+%NON SONO SICURO RIGUARDO AL DELTA_IJ POI CONTROLLA
+where $\mathbb{1}$ is the identity matrix with dimension given by the classical dimension of the system.
+
+\subsubsection{Fixed lenght between centroids}
+\subsection{Thermostatting and PIMD implementation}
+\subsection{White noise thermostat and Rattle combined}
 
 \end{document}          

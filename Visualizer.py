@@ -11,7 +11,7 @@ path=location+pathcoord
 
 #path1 = '/Users/edoardo/Desktop/simulazione_prova/pickle_norm.txt'
 
-time_multiplier=10
+time_multiplier=2
 
 in_file=open(path, 'rb')
 A=pickle.load(in_file)

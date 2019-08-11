@@ -16,7 +16,7 @@ steps = 100000
 dim = 2
 
 # time scales
-dt=0.001
+dt=0.02
 #dt_res=1.
 t0=1. #thermalizaton time for centroid, I have no idea of the range of values physically acceptable 
 #Adrien suggested 1/w_ext

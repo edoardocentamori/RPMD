@@ -79,6 +79,8 @@ def verlet_step2(q,v,dV0int,dV0ext,beta,fix=None,pos=None,fixc=None,posc=None,le
     # single thermalization in rattle
     if therm:
         vt = thermal_step2(v,beta)
+    else:
+        vt=v
     # simulate thermal action as evolution through an effective potential    
     #dV_eff = -2*(vt-v)/dt
     # evaluate lamda_r(n) assuming the effective potential acted

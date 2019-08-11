@@ -24,21 +24,21 @@ q_0,v_0 = initialize()
 #fixc=[0]
 #lint=np.sqrt(((q_0[0,0]-q_0[1,0])**2).sum(-1))
 #lenf=[((0,0),(1,0),lint)]
-u_0=q_0.sum(0)
-lintc=np.sqrt(((u_0[0]-u_0[1])**2).sum(-1))/N
-lenfc=[(0,1,lintc)]
-fixc =[0]
+#u_0=q_0.sum(0)
+#lintc=np.sqrt(((u_0[0]-u_0[1])**2).sum(-1))/N
+#lenfc=[(0,1,lintc)]
+#fixc =[0]
 fix=None
-#fixc=None
+fixc=None
 lenf=None
-#lenfc=None
+lenfc=None
 
 
 # Actual computation
 
 start = time.time()
 
-Q_n,V_n= verlet_algorithm(q_0,v_0,beta,fix=fix,fixc=fixc,lenf=lenf,lenfc=lenfc,norm=1,therm=True,debug=False)
+Q_n,V_n= verlet_algorithm(q_0,v_0,beta,fix=fix,fixc=fixc,lenf=lenf,lenfc=lenfc,norm=0,therm=False,debug=False)
 
 end = time.time()
 print(end - start)
@@ -46,13 +46,12 @@ print(end - start)
 #start = time.time()
 
 
-G_n=(Q_n.swapaxes(0,1)).swapaxes(1,2)
+#G_n=(Q_n.swapaxes(0,1)).swapaxes(1,2)
 #l_n = np.sqrt(((G_n[0,0]-G_n[1,0])**2).sum(-1))
 
 E_n = energy(Q_n,V_n)
-#E_n1 = energy(Q_n1,V_n1)
-#L_n = angular_momentum(Q_n,V_n)
-L_n= np.zeros(E_n.size) #debugging mode
+L_n = angular_momentum(Q_n,V_n)
+#L_n= np.zeros(E_n.size) #debugging mode
 
 # new estimators
 
@@ -74,13 +73,16 @@ out_file.close()
 fig, (ax1,ax2) = plt.subplots(2,1)
 x = np.linspace(0,steps*dt,steps-3)
 E_n=E_n[3:]
-#=E_n1[3:]
-#L_n=L_n[3:]
+L_n=L_n[3:]
 
 #L_n=l_n[3:]-l_n.mean()
+ax1.set_title('Energy')
 ax1.scatter(x,E_n,c='yellow',s=0.1)
-#ax1.scatter(x,E_n1,c='blue',s=0.1)
-#ax2.scatter(x,L_n,c='red',s=0.1)
+ax1.set_ylabel('Energy [a.u.]')
+ax2.scatter(x,L_n,c='red',s=0.1)
+ax2.set_title('Angular momentum')
+ax2.set_ylabel('Angular momentum[a.u.]')
+ax2.set_xlabel('steps')
 ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 ax2.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 plt.show()
