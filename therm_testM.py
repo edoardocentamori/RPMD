@@ -3,12 +3,12 @@ from setting import *
 from scipy.stats import binned_statistic
 import matplotlib.pyplot as plt
 from modules.normal import v_norm
-from modules.estimators import mode_energy
+from modules.estimatorsM import mode_energyM
 import pickle
 from scipy.optimize import curve_fit
 
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
-pathcoord='1-40-0.05-18'+'.txt'
+pathcoord='1-40-0.05-21'+'.txt'
 path=location+pathcoord
 
 in_file=open(path, 'rb')
@@ -32,7 +32,7 @@ bins=20
 
 #a = np.random.normal(size=(10000))
 
-E = mode_energy(U_n,VU_n).swapaxes(0,1)
+E = mode_energyM(U_n,VU_n).swapaxes(0,1)
 
 
 '''

@@ -8,15 +8,18 @@ au2cm       = 27.211*8065.5 # a.u -> cm^-1
 ang2au      = 1.88973       # don't know
 eV2cm       = 8065.6        # eV -> cm^-1
 
-
-P = 2 # masses
-N = 10 # beads per mass
+m = [9.] 
+P = len(m) # masse
+m = np.asarray(m)
+N = 40 # beads per mass
 
 steps = 100000
-dim = 2
+dim = 1
+
+M = np.broadcast_to(m.reshape(1,P,1),(N,P,dim))
 
 # time scales
-dt=0.02
+dt=0.05
 #dt_res=1.
 t0=1. #thermalizaton time for centroid, I have no idea of the range of values physically acceptable 
 #Adrien suggested 1/w_ext
@@ -37,13 +40,15 @@ vel_beads_scale = 0.2
 #ext_omega2 = w_e**2/femtoSec2au**2
 #omega2 = N/beta**2*femtoSec2au**2
 
-ext_omega2=1.  #remove later
+ext_omega =1.
+
+ext_omega2=ext_omega**2  
 
 beta = 4 # It's in atomic units
 
 omega2 = N**2/beta**2 #remove later
 
-id=17
+id=21
 
 
 
