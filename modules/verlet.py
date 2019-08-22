@@ -47,6 +47,12 @@ def dVext(q):
     """
     return ext_omega2*q
     
+def dVH2(q):
+    """
+    ####ACHTUNG added /2 to simulate the reduced mass
+    """
+    return ext_omega2*np.stack((q[:,0,:]-q[:,1,:],q[:,1,:]-q[:,0,:])).swapaxes(0,1)/2
+    
 def verlet_step(q,v,dV0,beta,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
     """
     vm == v_n-1/2

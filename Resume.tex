@@ -318,6 +318,8 @@ The correctness of the algorithm is checked both qualitatively thanks to the vid
 	\label{fig: en_rat}
 \end{figure}
 
+Naturally, fixing the position in a place different than $\bm{0}$ is straightforward and simply account for changing $\bm{\lambda}_r$ formula by $\bm{c}^n \rightarrow \bm{c}^n-\bm{c}_0$.
+
 \subsubsection{Fixed lenght between centroids}
 By the same token, since the constrain in this case is
 \[ g_1(\bm{q})=\frac{1}{2}(|\bm{c}_a^{n+1} -\bm{c}_b^{n+1}|^2-l^2)=0  \]
@@ -483,11 +485,95 @@ The process is repeated for several value of $\omega_{ext}$ and confronted with 
 %ADD FIT
 \subsection{White noise thermostat and Rattle combined}
 Combining together Rattle algorithm and white noise Langevin thermalization yeld to a new step 
-%ADD STEP
-%ADD RESULTS
 
+\begin{enumerate}
+	\item \[\tilde{p}_k \leftarrow c_{1k}\tilde{p}_k + \sqrt{\frac{m}{\beta}}c_{2k} \xi_k \]
+	\item \[\tilde{p}_k \leftarrow c_{1k}\tilde{p}_k + \sqrt{\frac{m}{\beta}}c_{2k} \xi'_k \]
+	\item Evaluate $\bm{\lambda}_r$ by solving :
+	\[ \bm{g}(\bm{q} + dt\bm{v}-\frac{dt^2}{2}\bm{M}^{-1}(\bm{\nabla}_{\bm q}V(\bm{q})-\bm{G}(\bm{q})^T\bm{\lambda}_r)) = \bm{0} \]
+	\item \[p_k \leftarrow p_k - \frac{dV_n}{d\vec{x_k}}\frac{dt}{2}-(\bm{G}(\bm{q})^T\bm{\lambda}_r)_k\frac{dt}{2}\]
+	\item 
+	\begin{equation}
+	\begin{pmatrix} 
+	\tilde{p}_k  \\
+	\tilde{q}_k \\
+	\end{pmatrix} 
+	\leftarrow
+	\begin{pmatrix} 
+	\cos(\omega_k dt) & -m\omega_k \sin(\omega_k dt)   \\
+	\frac{1}{m\omega_k}\sin(\omega_k dt) & \cos(\omega_k)  \\
+	\end{pmatrix} 
+	\begin{pmatrix} 
+	\tilde{p}_k  \\
+	\tilde{q}_k \\
+	\end{pmatrix} 
+	\end{equation}
+	\item Evaluate $\bm{\lambda}_v$ by solving :
+	\[
+	\bm{G}(\bm{q})(\bm{v}-\frac{dt}{2}\bm{M}^{-1}\bm{\nabla}_{\bm q}V(\bm{q})-\frac{dt}{2}\bm{M}^{-1} \bm{G}(\bm{q})^T\bm{\lambda}_v) = \bm{0}
+	\]
+	\item \[ p_k \leftarrow p_k - \frac{dV_n}{d\vec{x}_k}\frac{dt}{2}-(\bm{G}(\bm{q})^T\bm{\lambda}_v)_k\frac{dt}{2}\]
+	
+\end{enumerate}
 
+There are a couple of things that need to be commented about the new step, first of all the expressions previously found for $\bm{\lambda}_r$ and $\bm{\lambda}_v$ must work at the same way in this algorithm simply replacing the previous $\bm{q}$ and $\bm{p}$ with the ones obtained after the thermalization since their utility is to simply reimpose the constrain at every step, then it should be noticed that the two thermalization steps coming from the Trotter splitting have been put together, this doesn't change anything since the step is repeated cyclically, but the relevant thing is that when we consider the final values of $\bm{q}$ and $\bm{p}$ at the end of ech cycle, they obeys the constrains (since no noise acted after they imposition), if I had not done such change the motion would have been the same at each step a part for a small noise coming from the second thermalization (that would have not cumulate in subsequent steps anyway tough).
 
+The functionality of the algorithm has been checked by evaluating the effective constrained quantity over time as shown in Fig \ref{fig: mix} for a couple of necklace thermalized at $\beta=4$ and with the length between their centroid constrained.
+
+ \begin{figure}[h]
+	\begin{center}
+		\includegraphics[width=0.5\linewidth]{imm_rep/PIMD_with_rattle/lenfc_therm.png}
+	\end{center}
+	\caption{Constrained length of the two centroids}
+	\label{fig: mix}
+\end{figure}
+
+Some frames from the video visualization are shown in Fig \ref{fig: mixi}, there are some qualitative aspect that should be pointed out : 
+\begin{itemize}
+	\item[-] The motion of the replicas inside the necklace is completely unordered, that's because while in the previous example things have been initialized in a way to easier visualize the necklace shape, in this case the shape is rapidly lost due the ergodicity of the system
+	\item[-] One of the necklace seem always more condensed than the other, that's just because in that specific simulation they have different masses ($m_1=4$ $a.u.$,$m_2=1$ $a.u.$) and by simple statistical mechanics calculation you expect their linear dimension to be proportional to the de Broglie wavelength of the particle that is $\Lambda=\frac{h}{\sqrt{2\pi mk_BT}}$
+\end{itemize}
+
+ \begin{figure}[h]
+	\begin{center}
+		\includegraphics[width=0.5\linewidth]{imm_rep/PIMD_with_rattle/mix.png}
+	\end{center}
+	\caption{Some frames of the themalization with rattle algorithm}
+	\label{fig: mixi}
+\end{figure}
+
+Notice that since the constrain apply only to the centroids motion the other normal modes of the single centroids are unconstrained and must thus follow Boltzmann distribution as shown in Fig \ref{fig: mix_t} for a specific mode (the \nth{5} in this case) for $d=2$ .
+
+ \begin{figure}[h]
+	\begin{center}
+		\includegraphics[width=0.5\linewidth]{imm_rep/PIMD_with_rattle/mix_t.png}
+	\end{center}
+	\caption{Boltzmann distribution for the energies of a specific mode in the new  algorithm.}
+	\label{fig: mix_t}
+\end{figure}
+\subsection{A case of interest analysis}
+My research group in the end want to use all this formalism in a ring polymer molecular dynamic (RPMD) simulation, which basically means that the motion of the necklace, which in PIMD was considered only a mathematical tool to evaluate averages for quantum operators, now is considered a real motion with identification of centroids and quantum particles, some justifications of this idea can be found in [REFERENCE].
+%MAYBE YOU COULD WRITE THE MATZUBARA STAUFF ON YOUR OWN
+A full investigation of this problem is far beyond the scope of my internship, but at a basic level we would like to be able to simulate molecules using the instruments seen up to now, rattle algorithm in particular will be used to constrain translational and rotational degree of freedom of such molecules that otherwise carry some energies that add up to the relevant results.
+We'll work with the reaction 
+\[Mu + H_2 \rightarrow MuH + H \]
+%CHECK WHETER IS TRUE OR NOT
+($Mu$ is muonium, an hydrogen atom in which proton has been replaced by a muon $\mu^+$), the reason behind this reaction is that muonium is particularly light with respect to normal atoms and thus quantum effect are much more marked and we would like to study the ability of this algorithm to take them in consideration, also since the system is particularly small it can be actually simulated by exact quantum mechanical scattering theory (which at the state of art cannot be performed computationally for system with more than 6 effective degree of freedom) an thus we can confront our results with the ones coming from a more sophisticated model. But anyway the algorithm developed will be fully functional for generic molecules.
+Our approach will be to initialize the two system $Mu$ and $H_2$ so that they sample Boltzmann distribution for their real ab initio potential, since the potential are really complex and we cannot solve the problem analytically as we would do for an harmonic potential, the idea is the following:
+\begin{itemize}
+	\item[-] In the beginning approximate the potential connecting different atoms of the same molecules with an harmonic one (the one obtained by second order Taylor expansion of the real one) and ignore intermolecular forces by simply initializing different molecules far away
+	\item[-] Use the thermostats seen previously to initialize the molecules in their ground state 
+	\item[-] Change the potential slowly allowing the system to evolve naturally with the changing hamiltonian so that for the adiabatic theorem in the end the system will be initialized in the ground state of the real potential (the technique is called adiabatic switching)
+	\item[-] Now that the system are correctly initialized a scattering process can be simulated by kicking the muonium in the hydrogen direction
+\end{itemize}
+So in the end we just need a couple of improvements in the previous steps seen, in particular the external potential must be replaced with a many-body one (harmonic in the beginning) so that the initial quantum system is described by
+\[H=\sum_{I=1}^P \frac{p_I^2}{2m_I}+V(q_1, \dots,q_P)  \]
+It easy to show that in this case the PIMD previously seen for monodimensional system generalize to the effective hamiltionian
+\[H_n= \sum_{I=1}^P\sum_{i=1}^N \frac{(p_{I}^{(i)})^2}{2m_I} + \sum_{I=1}^P\sum_{i=1}^N\frac{m_i\omega_N^2}{2}(q_{I}^{(i)}-q_{I}^{(i+1)})^2 + \sum_i^N V(q_1^{(i)}, \dots,q_P^{(i)}) \]
+%NOT COMPLETELY SURE ABOUT THE POTENTIAL, MAYBE THERE IS 1/N MULTIPLYING, I'LL HAVE TO CHECK
+So that in general, considered two different atoms, only replicas with the same index $(i)$ interact with each other.
+As I said previously the fixed centroid rattle algorithm is the archetype for generic linear constrain so generalization to the constrain of center of mass shall not be discussed since straightforward, results concerning the effective preservation of the constrain are shown in figure [REFERENCE]
+%ADD REFERENCE 
 %ADD BIBLIOGRAPHY
 %PUT ENGLISH THEBIBLIOGRAPHY
 \begin{thebibliography}{99}

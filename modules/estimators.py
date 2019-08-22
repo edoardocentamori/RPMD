@@ -1,6 +1,7 @@
 from setting import *
 from modules.normal import w
 
+
 def energy(Q_n,V_n):
     '''
     Once I've seen it negative, there might be some problem with it
@@ -50,7 +51,6 @@ def primitive_energy(Q_n,V_n):
     #print(pot2)
     #print('---')
     return N/(2*beta)-pot2+pot1
-    
 
 def real_primitive_energy(Q_n,V_n):
     pot1 = ext_omega2/2*(Q_n**2).sum((1,2,3))/N
@@ -63,6 +63,16 @@ def real_primitive_energy(Q_n,V_n):
     # /N added to kin, since beads thermalize at beta/N not beta
     return kin-pot2+pot1
 
+def real_primitive_energyH2(Q_n,V_n):
+    pot1 = ext_omega2/2*((Q_n[:,:,1,:]-Q_n[:,:,0,:])**2).sum((2,3))/N
+    pot2 = 0.
+    Q_n=Q_n.swapaxes(0,1)
+    for i in range(N):
+        pot2+= ((Q_n[i]-Q_n[(i-1)%N])**2).sum((1,2))
+    pot2 *= omega2/(2*N) 
+    kin= 1/2*(V_n**2).sum((1,2,3))/N
+    # /N added to kin, since beads thermalize at beta/N not beta
+    return kin-pot2+pot1
 
 def virial_energy(Q_n,V_n):
     x_c=Q_n.sum(1)/N

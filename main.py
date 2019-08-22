@@ -5,7 +5,7 @@ from modules.verlet import verlet_algorithm, initialize, zero_init
 from modules.verletM import verlet_algorithmM
 from modules.graph import *
 from modules.estimators import *
-from modules.estimatorsM import primitive_energyM, real_primitive_energyM
+from modules.estimatorsM import primitive_energyM, real_primitive_energyM,real_primitive_energyH2M, KH2M, pot1H2M,pot2H2M
 import pickle
 from matplotlib import pyplot as plt
 import time
@@ -31,8 +31,10 @@ q_0,v_0 = zero_init()
 #lintc=np.sqrt(((u_0[0]-u_0[1])**2).sum(-1))/N
 #lenfc=[(0,1,lintc)]
 #fixc =[0]
+#fixcm = [0,1]
 fix=None
 fixc=None
+fixcm=None
 lenf=None
 lenfc=None
 
@@ -41,7 +43,7 @@ lenfc=None
 
 start = time.time()
 
-Q_n,V_n= verlet_algorithmM(q_0,v_0,beta,fix=fix,fixc=fixc,lenf=lenf,lenfc=lenfc,norm=1,therm=True,debug=False)
+Q_n,V_n= verlet_algorithmM(q_0,v_0,beta,fix=fix,fixc=fixc,fixcm=fixcm,lenf=lenf,lenfc=lenfc,norm=1,therm=True,debug=False,H2=True)
 
 end = time.time()
 print(end - start)
@@ -62,8 +64,10 @@ L_n= np.zeros(E_n.size) #d1 dimension
 E2 = primitive_energyM(Q_n,V_n)
 E3 = virial_energy(Q_n,V_n)
 E4 = real_primitive_energyM(Q_n,V_n)
-
-
+E5 = real_primitive_energyH2M(Q_n,V_n)
+k = KH2M(Q_n,V_n)
+p1 = pot1H2M(Q_n,V_n)
+p2 = pot2H2M(Q_n,V_n)
 
 
 # Data storage
@@ -101,6 +105,12 @@ fig1, ax3 = plt.subplots()
 E2=E2[3:]
 E3=E3[3:]
 E4=E4[3:]
+E5=E5[3:]
+if P==2:
+    k = k[3:]
+    p1 = p1[3:]
+    p2 = p2[3:]
+
 
 #ax3.scatter(x,E1,c='yellow',s=0.1,label='fictitious')
 ax3.scatter(x,E2,c='blue',s=0.1,label='primitive')
@@ -118,6 +128,11 @@ fig2, ax4 = plt.subplots()
 e2=time_avarage(E2)
 e3=time_avarage(E3)
 e4=time_avarage(E4)
+e5=time_avarage(E5)
+if P==2:
+    k=time_avarage(k)
+    p1=time_avarage(p1)
+    p2=time_avarage(p2)
 
 x1 = np.linspace(0,steps,steps-3)
 
@@ -134,15 +149,12 @@ ax4.set_title('Time avarage')
 ax4.legend()
 plt.show()
 
-
-
-
 fE4 = E4[20000:]
 fe4 = time_avarage(fE4)
 print(fe4[-1]) 
 
 
-'''
+
 #check conservation of constrain
 
 u = (Q_n.swapaxes(0,2)[0].sum(0)/N).swapaxes(0,1)[0]
@@ -163,10 +175,40 @@ d = ((u1-u2)**2).sum(0)
 
 fig4, ax6= plt.subplots()
 
+#ax6.set_ylim(221.129,221.147)
 ax6.scatter(x,d,c='green',s=0.1)
 ax6.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 ax6.set_title('Length between the centroids')
 ax6.set_ylabel('Length between the centroids [a.u.]')
 ax6.set_xlabel('steps [thousands]')
+
 plt.show()
-'''
+
+C_n = Q_n.sum(1)/N
+Cm_n = (m[0]*C_n[:,0,:]+m[1]*C_n[:,1,:])/(m[0]+m[1])
+
+Cm_n = Cm_n[:,0] #chosen axes x to show
+
+x=np.linspace(0,steps*dt,steps)
+fig5, ax7= plt.subplots()
+
+ax7.scatter(x,Cm_n,c='blue',s=0.1)
+ax7.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
+ax7.set_title('Center of mass position')
+ax7.set_ylabel('Centroid position [a.u.]')
+ax7.set_xlabel('steps')
+plt.show()
+
+
+fig6, ax8= plt.subplots()
+x1 = np.linspace(0,steps,steps-3)
+ax8.scatter(x1,e5,c='yellow',s=0.1,label='primitive H2')
+ax8.scatter(x1,k,c='red',s=0.1,label='kinetic')
+ax8.scatter(x1,p1,c='blue',s=0.1,label='p1')
+ax8.scatter(x1,p2,c='green',s=0.1,label='p2')
+ax8.set_title('Primitive energy')
+ax8.set_ylabel('primitive energy [a.u.]')
+ax8.set_xlabel('steps')
+ax8.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
+ax8.legend()
+plt.show()

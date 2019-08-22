@@ -1,5 +1,6 @@
 import numpy as np
 from setting import *
+
     
 #j-k inverted w.r.t the definition in the paper (C = C_kj)
 #took 2.3 s for N=10000
@@ -30,11 +31,35 @@ for i in range(N):
         numerical_sin_w[i] = 1/w[i]*np.sin(w[i]*dt)
     else :
         numerical_sin_w[i] = dt - 1/6*w[i]**2*dt**3 #added recently 3rd order
+        
+    
+S_=np.zeros((N,N))
+C_=np.zeros((N,N))
+for i in range(N):
+    for j in range(N):
+        for k in range(N):
+            S_[i,j]+=C[k,i]*C[k,j]*numerical_sin_w[k]
+            C_[i,j]+=C[k,i]*C[k,j]*np.cos(w[k]*dt)
+
+#
+# It's a test then you should put it in a better form 
+#
+
+fixcm = [0,1]
+
+alpha = 0.
+for i in fixcm:
+    for j in range(N):
+        alpha+=S_[i,j]
+
+
 
 #this part is for mass dependent stuff , it's basically a rescaling of W
 # accrding to the new masses, but consider that W also changes dimensions
 W = np.broadcast_to(w.reshape(N,1,1),(N,P,dim))
-W = W/np.sqrt(M)
+#!!!!!
+#W = W/np.sqrt(M) #removed to check a thing pay attention !!!!!
+#!!!!!
 W.setflags(write=1) # for some reason it was read only (probably because of broadcast)
 numerical_sin_W = np.zeros((N,P,dim))
 numerical_sin_W[np.where(W==0)] = dt - 1/6*W[np.where(W==0)]**2*dt**3

@@ -1,8 +1,9 @@
 import numpy as np
 from setting import *
+from modules.normal import S_,C_,alpha
 
 
-def constrained_rM(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
+def constrained_rM(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,fixcm=None,poscm=None,lenf=None,lenfc=None):
     lamda_r = np.zeros((N,P,dim))
     if fix:  # fix singular beads
         for i,j in fix:
@@ -15,9 +16,46 @@ def constrained_rM(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc
         for j in fixc:
             u[j]=q_[j].sum(0)
             vu[j]=v_[j].sum(0)
-            for i in range(N):
-                lamda_r[i,j]+=1/N*(2/dt**2*(u[j]-posc[j])+2/dt*vu[j]-(dV0/M).sum(0)[j])
+            #for i in range(N):
+            #    lamda_r[i,j]+=1/N*(2/dt**2*(u[j]-posc[j])+2/dt*vu[j]-(dV0/M).sum(0)[j])
+            #trial to test efficiency, not really more efficient but work
+            lamda_r[:,j]+=1/N*(2/dt**2*(u[j]-posc[j])+2/dt*vu[j]-(dV0/M).sum(0)[j])
                 #added dV0 -> dV0/M
+    '''
+    if fixcm:  # fixed center of mass
+        mtot = 0.
+        cm = np.zeros(dim)
+        vcm = np.zeros(dim)
+        dVm = np.zeros(dim)
+        for a in fixcm:
+            mtot += m[a]
+            cm += m[a]*q[:,a,:].sum(0)
+            vcm += m[a]*v[:,a,:].sum(0)
+            dVm += dV0[:,a,:].sum(0)
+        cm /= mtot
+        vcm /= mtot
+        for a in fixcm:
+            lamda_r[:,a]+=(1/N*(2/dt**2*(cm-poscm)+2/dt*vcm-(dVm/mtot)))*mtot/m[a]
+    '''
+    if fixcm: #new implementation, should work better in theory
+        mtot = 0.
+        q_ = np.einsum('ij,jlm->ilm',C_,q)
+        v_ = np.einsum('ij,jlm->ilm',S_,v)
+        dV_ = np.einsum('ij,jlm->ilm',S_,dV0)
+        cm = np.zeros(dim)
+        vcm = np.zeros(dim)
+        dVm = np.zeros(dim)
+        for a in fixcm:
+            mtot += m[a]
+            cm += m[a]*q_[:,a,:].sum(0)
+            vcm += m[a]*v_[:,a,:].sum(0)
+            dVm += dV_[:,a,:].sum(0)
+        cm /= mtot
+        vcm /= mtot
+        dVm /= mtot
+        for a in fixcm:
+            lamda_r[:,a]+=2/(alpha*dt*N)*(cm-poscm+vcm-dVm*dt/2)*mtot/m[a]
+    
     if lenf:  #fix lenght between beads
         B = np.zeros((N,P,dim))
         C = np.zeros((N,P,dim))
@@ -65,7 +103,7 @@ def constrained_rM(q,v,dV0,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc
                 lamda_r[i,b]+=-(u[a]-u[b])/N*lamda_rx[a]
     return lamda_r
 
-def constrained_vM(q1,vp,dV1,fix=None,pos=None,fixc=None,posc=None,lenf=None,lenfc=None):
+def constrained_vM(q1,vp,dV1,fix=None,pos=None,fixc=None,posc=None,fixcm=None, poscm=None,lenf=None,lenfc=None):
     lamda_vp = np.zeros((N,P,dim))
     if fix:  # fix singular beads
         for i,j in fix:
@@ -77,6 +115,17 @@ def constrained_vM(q1,vp,dV1,fix=None,pos=None,fixc=None,posc=None,lenf=None,len
             vpu[j]=vp_[j].sum(0)
             for i in range(N):
                 lamda_vp[i,j]+=1/N*(2/dt*vpu[j]-(dV1/M).sum(0)[j])
+    if fixcm:
+        mtot = 0.
+        vcm = np.zeros(dim)
+        dVm = np.zeros(dim)
+        for a in fixcm:
+            mtot += m[a]
+            vcm += m[a]*vp[:,a,:].sum(0)
+            dVm += dV1[:,a,:].sum(0)
+        vcm /= mtot
+        for a in fixcm:
+            lamda_vp[:,a]+=1/N*(2/dt*vcm-(dVm/mtot))*mtot/m[a]
     if lenf:  #fix lenght between beads
         lamda_vx= np.zeros((N,P))
         for (i,a),(j,b),_ in lenf:

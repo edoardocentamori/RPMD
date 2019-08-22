@@ -8,12 +8,12 @@ au2cm       = 27.211*8065.5 # a.u -> cm^-1
 ang2au      = 1.88973       # don't know
 eV2cm       = 8065.6        # eV -> cm^-1
 
-m = [9.] 
+m = [1.,1.] 
 P = len(m) # masse
 m = np.asarray(m)
-N = 40 # beads per mass
+N = 10 # beads per mass
 
-steps = 100000
+steps = 50000
 dim = 1
 
 M = np.broadcast_to(m.reshape(1,P,1),(N,P,dim))

@@ -6,12 +6,12 @@ import pickle
 # Data extraction
 
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
-pathcoord='2-10-0.001-18'+'.txt'
+pathcoord='2-10-0.001-21'+'.txt'
 path=location+pathcoord
 
 #path1 = '/Users/edoardo/Desktop/simulazione_prova/pickle_norm.txt'
 
-time_multiplier=3
+time_multiplier=10
 
 in_file=open(path, 'rb')
 A=pickle.load(in_file)

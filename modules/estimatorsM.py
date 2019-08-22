@@ -5,7 +5,7 @@ def energyM(Q_n,V_n):
     kin = (M*(V_n**2)).sum((1,2,3))/2
     pot1 = ext_omega2/2*(Q_n**2).sum((1,2,3))
     pot2 = 0.
-    Q_n=Q_n.swapaxes(0,1)
+    Q_n=(np.sqrt(M)*Q_n).swapaxes(0,1)
     for i in range(N):
         pot2+= ((Q_n[i]-Q_n[(i-1)%N])**2).sum((1,2))
     pot2 *= omega2/2
@@ -31,10 +31,11 @@ def primitive_energyM(Q_n,V_n):
     divide per N or per P*N in multidimensional system
     pot1 seem ok, pot2 seem too big
     It seem to mee that some particles are too disperded, maybe thermalization is wrong
+    ACHTUNG : just added M on pot1
     '''
     pot1 = ext_omega2/2*(Q_n**2).sum((1,2,3))/N
     pot2 = 0.
-    Q_n=(Q_n).swapaxes(0,1) 
+    Q_n=(np.sqrt(M)*Q_n).swapaxes(0,1) 
     for i in range(N):
         pot2+= ((Q_n[i]-Q_n[(i-1)%N])**2).sum((1,2)) 
     pot2 *= omega2/(2*N) 
@@ -46,13 +47,42 @@ def real_primitive_energyM(Q_n,V_n):
     '''
     pot1 = ext_omega2/2*(Q_n**2).sum((1,2,3))/N
     pot2 = 0.
-    Q_n=Q_n.swapaxes(0,1) 
+    Q_n=(np.sqrt(M)*Q_n).swapaxes(0,1) 
     for i in range(N):
         pot2+= ((Q_n[i]-Q_n[(i-1)%N])**2).sum((1,2)) 
     pot2 *= omega2/(2*N) 
     kin= (1/2*M*(V_n**2)).sum((1,2,3))/N
     # /N added to kin, since beads thermalize at beta/N not beta
     return kin-pot2+pot1
+    
+def real_primitive_energyH2M(Q_n,V_n):
+    """
+    ### added a /2 in pot1 is the same one coming from the reduced mass 
+    """
+    pot1 = ext_omega2/2/2*((Q_n[:,:,1,:]-Q_n[:,:,0,:])**2).sum((1,2))/N
+    pot2 = 0.
+    Q_n=(np.sqrt(M)*Q_n).swapaxes(0,1) 
+    for i in range(N):
+        pot2+= ((Q_n[i]-Q_n[(i-1)%N])**2).sum((1,2)) 
+    pot2 *= omega2/(2*N) 
+    kin= (1/2*M*(V_n**2)).sum((1,2,3))/N
+    # /N added to kin, since beads thermalize at beta/N not beta
+    return kin-pot2+pot1
+
+def KH2M(Q_n,V_n):
+    return (1/2*M*(V_n**2)).sum((1,2,3))/N
+
+def pot1H2M(Q_n,V_n):
+    return ext_omega2/2/2*((Q_n[:,:,1,:]-Q_n[:,:,0,:])**2).sum((1,2))/N
+
+def pot2H2M(Q_n,V_n):
+    pot2 = 0.
+    Q_n=(np.sqrt(M)*Q_n).swapaxes(0,1) 
+    for i in range(N):
+        pot2+= ((Q_n[i]-Q_n[(i-1)%N])**2).sum((1,2)) 
+    pot2 *= omega2/(2*N)
+    return pot2
+
 
 def virial_energyM(Q_n,V_n):
     x_c=Q_n.sum(1)/N
