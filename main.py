@@ -10,18 +10,24 @@ import pickle
 from matplotlib import pyplot as plt
 import time
 from modules.estimatorsM import energyM, angular_momentumM
+from modules.normal import eta
 
-# file naming 
+# Main is used to run the entire model and sketch some basic graph used mainly for debugging purpouses, output data are saved as byte files and processed elsewere
+
+# This part defines the output file in a format that incorporate the data contained in it
 
 prepath='/Users/edoardo/Desktop/simulazione_prova/record/'
 ID = str(P)+'-'+str(N) + '-' + str(dt) +'-'+ str(id) +'.txt'
 path=prepath+ID
+
 
 #q_0,v_0 = initialize()
 q_0,v_0 = zero_init()
 
 
 # Constrain setting, some random constrain to check functionality
+# Depending on what you need to test you can use different ones [debugging purpouse]
+
 
 #fix=[(0,0),(3,0)]
 #fixc=[0]
@@ -32,6 +38,10 @@ q_0,v_0 = zero_init()
 #lenfc=[(0,1,lintc)]
 #fixc =[0]
 #fixcm = [0,1]
+
+# These flags tells you which constraint are enabled
+
+fixL=True
 fix=None
 fixc=None
 fixcm=None
@@ -39,17 +49,22 @@ lenf=None
 lenfc=None
 
 
-# Actual computation
+#mtot= m.sum()
+#linear = M
+#linear = np.zeros((N,P,dim))
+#linear[:,0,:]=np.ones((N,dim))
+linear = None
+
+# Actual computation, this function run the entire program, the time of the operation is monitored to check for efficiency
 
 start = time.time()
 
-Q_n,V_n= verlet_algorithmM(q_0,v_0,beta,fix=fix,fixc=fixc,fixcm=fixcm,lenf=lenf,lenfc=lenfc,norm=1,therm=True,debug=False,H2=True)
+Q_n,V_n= verlet_algorithmM(q_0,v_0,beta,fix=fix,fixc=fixc,fixcm=fixcm,lenf=lenf,lenfc=lenfc,norm=1,therm=True,debug=False,H2=True,linear=linear,fixL=fixL)
 
 end = time.time()
 print(end - start)
 
-#start = time.time()
-
+#Here are defined several observables of interest in the system
 
 #G_n=(Q_n.swapaxes(0,1)).swapaxes(1,2)
 #l_n = np.sqrt(((G_n[0,0]-G_n[1,0])**2).sum(-1))
@@ -76,7 +91,7 @@ out_file=open(path,'wb+')
 pickle.dump([Q_n,V_n,E_n,L_n,dt],out_file)
 out_file.close()
 
-
+#From here on there are only a lot of graphs used mainly for debugging and informative purpouses.
 
 # Plotting energy and angular momentum
 
@@ -149,11 +164,9 @@ ax4.set_title('Time avarage')
 ax4.legend()
 plt.show()
 
-fE4 = E4[20000:]
-fe4 = time_avarage(fE4)
-print(fe4[-1]) 
-
-
+#fE4 = E4[20000:]
+#fe4 = time_avarage(fE4)
+#print(fe4[-1]) 
 
 #check conservation of constrain
 
@@ -189,26 +202,51 @@ Cm_n = (m[0]*C_n[:,0,:]+m[1]*C_n[:,1,:])/(m[0]+m[1])
 
 Cm_n = Cm_n[:,0] #chosen axes x to show
 
-x=np.linspace(0,steps*dt,steps)
+x=np.linspace(0,steps*dt,steps)*20
 fig5, ax7= plt.subplots()
 
 ax7.scatter(x,Cm_n,c='blue',s=0.1)
 ax7.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 ax7.set_title('Center of mass position')
-ax7.set_ylabel('Centroid position [a.u.]')
+ax7.set_ylabel('C.M. position [a.u.]')
 ax7.set_xlabel('steps')
 plt.show()
 
 
 fig6, ax8= plt.subplots()
 x1 = np.linspace(0,steps,steps-3)
-ax8.scatter(x1,e5,c='yellow',s=0.1,label='primitive H2')
-ax8.scatter(x1,k,c='red',s=0.1,label='kinetic')
-ax8.scatter(x1,p1,c='blue',s=0.1,label='p1')
-ax8.scatter(x1,p2,c='green',s=0.1,label='p2')
-ax8.set_title('Primitive energy')
+ax8.scatter(x1,e5,c='blue',s=0.1,label='primitive H2')
+#ax8.scatter(x1,k,c='red',s=0.1,label='kinetic')
+#ax8.scatter(x1,p1,c='blue',s=0.1,label='p1')
+#ax8.scatter(x1,p2,c='green',s=0.1,label='p2')
+ax8.set_title('Primitive energy H2')
 ax8.set_ylabel('primitive energy [a.u.]')
 ax8.set_xlabel('steps')
 ax8.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 ax8.legend()
 plt.show()
+
+
+
+C_n = Q_n.sum(1)/N
+meta = C_n[:,0,:]-C_n[:,1,:]
+modmeta = np.sqrt((meta**2).sum(1))
+print(modmeta)
+for i in range(dim):
+    meta[:,i] = meta[:,i]/modmeta
+print(meta)
+#meta /= np.sqrt((meta**2).sum(1))
+dif= ((meta-eta)**2).sum(1)
+
+
+x=np.linspace(0,steps*dt,steps)
+
+fig7, ax9= plt.subplots()
+
+ax9.scatter(x,dif,c='blue',s=0.1,label='deviation')
+ax9.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
+ax9.set_title('deviation from the right direction')
+ax9.set_ylabel('Deviation [a.u.]')
+ax9.set_xlabel('steps')
+plt.show()
+#the discrete oscillations are due to C1 and C2 swhiching place in a oscillation

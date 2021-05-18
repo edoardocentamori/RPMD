@@ -3,19 +3,29 @@ import matplotlib.animation as animation
 import numpy as np
 import pickle
 
-# Data extraction
+#This file is used to visualize the data
+
+# Data coordinate
 
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
-pathcoord='2-10-0.001-21'+'.txt'
+pathcoord='3-5-0.001-4'+'.txt'
+
+#5-10-0.01-1  #example of system without thermalization #use time_multiplier=1
+#3-5-0.001-4  #example of system with constraint #use time_multiplier=5
+#1-10-0.001-18 #example of system with thermalization #use time_multiplier=1
+
 path=location+pathcoord
 
-#path1 = '/Users/edoardo/Desktop/simulazione_prova/pickle_norm.txt'
+time_multiplier=5 #speed up the video
 
-time_multiplier=10
+# Data extraction
 
 in_file=open(path, 'rb')
 A=pickle.load(in_file)
-in_file.close() #aggiunte recentemente, sembrava non necessario
+in_file.close() 
+
+
+
 Q_n, V_n, E_n, L_n ,dt= A[0], A[1], A[2], A[3], A[4]
 a,b,c,d=Q_n.shape
 Q_n=Q_n.reshape(a,b*c,d)
@@ -39,7 +49,6 @@ ax12.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 ax21.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 plt.show()
 
-
 # time scaling : simply ignore some data to show things faster
 
 S_n=np.zeros((a//time_multiplier,b*c,d))
@@ -50,16 +59,8 @@ Q_n=S_n
 steps, N, dim = Q_n.shape
 
 
+# The animated object
 
-
-
-'''
-location='/Users/edoardo/Desktop/simulazione_prova/pickle_norm.txt'
-in_file=open(location, 'rb')
-Q_n=pickle.load(in_file).real
-
-steps, N, dim = Q_n.shape
-'''
 class AnimatedScatter(object):
     """An animated scatter plot using matplotlib.animations.FuncAnimation."""
     def __init__(self, numpoints=N):
@@ -79,8 +80,6 @@ class AnimatedScatter(object):
         self.scat = self.ax.scatter(x, y, c=c, s=s, vmin=0, vmax=1,
                                     cmap="jet", edgecolor="k")
         self.ax.axis([-100, 100, -100, 100])
-        # For FuncAnimation's sake, we need to return the artist we'll be using
-        # Note that it expects a sequence of artists, thus the trailing comma.
         return self.scat,
 
     def data_stream(self):
@@ -95,10 +94,6 @@ class AnimatedScatter(object):
             t%=steps
             x = Q_n[t].T[0] 
             y = Q_n[t].T[1] 
-            #x += 0.03 * (np.random.random((self.numpoints)) - 0.5)
-            #y += 0.03 * (np.random.random((self.numpoints)) - 0.5)
-            #s += 0.05 * (np.random.random(self.numpoints) - 0.5)
-            #c += 0.02 * (np.random.random(self.numpoints) - 0.5)
             yield np.c_[x, y, s, c]
 
     def update(self, i):
@@ -112,8 +107,6 @@ class AnimatedScatter(object):
         # Set colors..
         self.scat.set_array(data[:, 3])
 
-        # We need to return the updated artist for FuncAnimation to draw..
-        # Note that it expects a sequence of artists, thus the trailing comma.
         return self.scat,
 
 
