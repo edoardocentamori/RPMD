@@ -7,13 +7,15 @@ from modules.estimatorsM import mode_energyM
 import pickle
 from scipy.optimize import curve_fit
 
+# Exctract data
+
 location='/Users/edoardo/Desktop/simulazione_prova/record/'
 pathcoord='2-10-0.001-21'+'.txt'
 path=location+pathcoord
 
 in_file=open(path, 'rb')
 A=pickle.load(in_file)
-in_file.close() #aggiunte recentemente, sembrava non necessario
+in_file.close() 
 Q_n, V_n, E_n, L_n ,dt= A[0], A[1], A[2], A[3], A[4]
 
 
@@ -25,7 +27,6 @@ Q_n = Q_n0.reshape(steps, N, 1, dim)
 V_n = V_n0.reshape(steps, N, 1, dim)
 
 #Single centroid motion
-
 
 U_n = []
 VU_n = []
@@ -39,8 +40,6 @@ U_n = np.asarray(U_n)
 VU_n = np.asarray(VU_n)
 
 bins=20
-
-
 
 
 #a = np.random.normal(size=(10000))

@@ -7,33 +7,36 @@ import matplotlib.pyplot as plt
 gamma = 2*w
 gamma[0] = 1/t0
 
-c1=np.exp(-dt/2*gamma)
+c1 = np.exp(-dt/2*gamma)
 
-c1 = np.broadcast_to(c1.reshape(N,1,1),(N,P,dim))
+c1 = np.broadcast_to(c1.reshape(N, 1, 1), (N, P, dim))
 
-c2=np.sqrt(1-c1**2)
+c2 = np.sqrt(1-c1**2)
 
-#I'm adding the beta -> beta/N in the thermalization, let's hope it save the day
+#  I'm adding the beta -> beta/N in the thermalization, let's hope it save the day
 
-def thermal_stepM(v,beta):
-    '''
+
+def thermal_stepM(v, beta):
+    """
     It might have some problem for P>1 must fix
-    '''
+    """
     vu = v_norm(v)
-    vu = c1*vu+np.sqrt(N/(beta*M))*c2*normal(size=(N,P,dim))
-    return v_stand(vu) 
+    vu = c1*vu+np.sqrt(N/(beta*M))*c2*normal(size=(N, P, dim))
+    return v_stand(vu)
+
     
-def thermal_step2M(v,beta):
+def thermal_step2M(v, beta):
     vu = v_norm(v)
-    vu = c1*vu + np.sqrt(N/(beta*M))*c2*normal(size=(N,P,dim))
-    vu = c1*vu + np.sqrt(N/(beta*M))*c2*normal(size=(N,P,dim))
+    vu = c1*vu + np.sqrt(N/(beta*M))*c2*normal(size=(N, P, dim))
+    vu = c1*vu + np.sqrt(N/(beta*M))*c2*normal(size=(N, P, dim))
     return v_stand(vu) 
-    
-def debug_thermal_step(vu,beta):
-    vu = (c1*vu.swapaxes(0,-1)).swapaxes(0,-1)
-    ran = normal(size=(dim,P,N))
-    delta = (np.sqrt(N/beta)*c2*ran).swapaxes(0,-1)
-    vu+= delta
+
+
+def debug_thermal_step(vu, beta):
+    vu = (c1*vu.swapaxes(0, -1)).swapaxes(0, -1)
+    ran = normal(size=(dim, P, N))
+    delta = (np.sqrt(N/beta)*c2*ran).swapaxes(0, -1)
+    vu += delta
     return vu 
 
 '''
